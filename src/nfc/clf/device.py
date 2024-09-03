@@ -53,6 +53,9 @@ usb_device_map = {
 
 tty_driver_list = ["arygon", "pn532"]
 
+i2c_device_map = {
+    24: "pn532",    # PN532 I2C
+}
 
 def connect(path):
     """Connect to a local device identified by *path* and load the
@@ -118,6 +121,16 @@ def connect(path):
                         tty.close()
                     if not globbed:
                         raise
+
+    found = transport.I2C.find(path)
+    if found is not None:
+        channel, address = found
+        module = i2c_device_map.get(address)
+        if module:
+            driver = importlib.import_module("nfc.clf." + module)
+            device = driver.init(transport.I2C(channel, address))
+
+            return device
 
     if path.startswith("udp"):
         path = path.split(':')

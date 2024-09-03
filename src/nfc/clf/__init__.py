@@ -132,6 +132,12 @@ class ContactlessFrontend(object):
            UDP/IP. The defaults for *host* and *port* are
            ``localhost:54321``.
 
+        ``i2c:channel:address``
+
+           with mandatory *channel* and *address* name. This is for
+           I2C-connected devices on the Raspberry Pi and similar
+           devices.
+
         """
         if not isinstance(path, str):
             raise TypeError("expecting a string type argument *path*")

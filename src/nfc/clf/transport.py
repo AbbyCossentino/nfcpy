@@ -22,9 +22,9 @@
 #
 # Transport layer for host to reader communication.
 #
+import errno
 import os
 import re
-import errno
 from binascii import hexlify
 
 if not os.getenv("READTHEDOCS"):  # pragma: no cover
@@ -44,7 +44,13 @@ try:
 except ImportError:  # pragma: no cover
     assert os.name != 'posix'
 
+try:
+    import quick2wire.i2c as i2c
+except ImportError:
+    pass
+
 import logging
+
 log = logging.getLogger(__name__)
 
 PATH = re.compile(r'^([a-z]+)(?::|)([a-zA-Z0-9-]+|)(?::|)([a-zA-Z0-9]+|)$')
@@ -343,3 +349,34 @@ class USB(object):
             except libusb.USBError as error:
                 log.error("%r", error)
                 raise IOError(errno.EIO, os.strerror(errno.EIO))
+
+
+class I2C(object):
+    TYPE = "I2C"
+
+    @classmethod
+    def find(cls, path):
+        if not path.startswith("i2c"):
+            return
+
+        transport_type, channel, address = path.split(":")
+        return int(channel), int(address)
+
+    def __init__(self, channel, address):
+        self.i2c_address = address
+        self.i2c_master = i2c.I2CMaster(channel)
+
+    def read(self, timeout=0):
+        response = self.i2c_master.transaction(
+            i2c.reading(self.i2c_address, 255),
+        )
+        frame = bytearray(response)
+        return frame
+
+    def write(self, frame):
+        response = self.i2c_master.transaction(
+            i2c.writing_bytes(self.i2c_address, frame),
+        )
+
+    def close(self):
+        self.i2c_master.close()
